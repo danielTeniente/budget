@@ -1,0 +1,16 @@
+            
+spending_manager/
+│
+├── app.py                      # Main entry point with menu navigation
+├── pages/
+│   ├── spendings.py           # Spending management (add, update, delete)
+│   ├── exchange_currency_spendings.py # New page for exchange currency spendings
+│
+├── spendings/
+│   ├── models.py              # Spending data model
+│   ├── data_handler.py        # Functions to load, add, update, delete spendings
+│
+├── data/
+│   └── spendings.csv          # Example data file
+│
+└── README.md                  # Project documentation
