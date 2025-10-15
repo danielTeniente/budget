@@ -3,8 +3,8 @@ from datetime import date
 from typing import List, Literal
 import requests
 
-from spendings.models import Spending
-from spendings.data_handler import add_spending
+from expenses.models import Expenses
+from expenses.data_handler import add_expenses
 
 # Define supported currencies
 Currency = Literal["USD", "EUR", "GBP"]
@@ -35,11 +35,11 @@ def convert_currency(amount: float, rate: float) -> float:
     return round(amount * rate, 2)
 
 def render() -> None:
-    """Render the Exchange Currency Spendings page."""
-    st.title("Exchange Currency Spendings")
+    """Render the Exchange Currency expenses page."""
+    st.title("Exchange Currency expenses")
 
     # Select currencies
-    from_currency: Currency = st.selectbox("Spending Currency", SUPPORTED_CURRENCIES)
+    from_currency: Currency = st.selectbox("expenses Currency", SUPPORTED_CURRENCIES)
     to_currency: Currency = st.selectbox("Budget Currency", SUPPORTED_CURRENCIES)
 
     # Fetch and allow manual override of exchange rate
@@ -47,17 +47,17 @@ def render() -> None:
     manual_rate: float = st.number_input("Exchange Rate", value=exchange_rate, min_value=0.01, format="%.4f")
     st.caption(f"Fetched rate from {from_currency} to {to_currency}: {exchange_rate:.4f}")
 
-    # Input multiple spendings
-    st.subheader("Enter Spendings")
-    num_spendings: int = st.number_input("Number of Spendings", min_value=1, max_value=10, step=1)
+    # Input multiple expenses
+    st.subheader("Enter expenses")
+    num_expenses: int = st.number_input("Number of expenses", min_value=1, max_value=10, step=1)
 
-    spendings: List[Spending] = []
+    expenses: List[Expenses] = []
     total_original: float = 0.0
     total_converted: float = 0.0
 
-    for i in range(num_spendings):
-        with st.expander(f"Spending {i+1}"):
-            spending_date: date = st.date_input(f"Date", value=date.today(), key=f"date_{i}")
+    for i in range(num_expenses):
+        with st.expander(f"expenses {i+1}"):
+            expenses_date: date = st.date_input(f"Date", value=date.today(), key=f"date_{i}")
             name: str = st.text_input("Name", key=f"name_{i}")
             amount: float = st.number_input(f"Amount ({from_currency})", min_value=0.0, key=f"amount_{i}")
             description: str = st.text_input("Description", key=f"description_{i}")
@@ -67,19 +67,19 @@ def render() -> None:
             st.info(f"{amount} {from_currency} ≈ {converted_amount} {to_currency}")
 
             if name and amount > 0:
-                spendings.append(Spending(spending_date, name, converted_amount, description, is_fixed))
+                expenses.append(Expenses(expenses_date, name, converted_amount, description, is_fixed))
                 total_original += amount
                 total_converted += converted_amount
 
     # Show totals and confirmation
-    if spendings:
+    if expenses:
         st.subheader("Summary")
         st.write(f"Total in {from_currency}: **{total_original:.2f}**")
         st.write(f"Total in {to_currency}: **{total_converted:.2f}**")
 
-        confirm: bool = st.checkbox("Confirm and Save Spendings")
+        confirm: bool = st.checkbox("Confirm and Save expenses")
         if confirm and st.button("Save All"):
-            for spending in spendings:
-                add_spending(spending)
-            st.success("All spendings saved successfully.")
+            for ex in expenses:
+                add_expenses(ex)
+            st.success("All expenses saved successfully.")
             st.rerun()

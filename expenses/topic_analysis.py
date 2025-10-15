@@ -1,7 +1,9 @@
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
+import expenses.data_handler as data_handler  # Use absolute import in your project
+
+from datetime import date
 from sklearn.cluster import KMeans
-import spendings.data_handler as data_handler  # Use absolute import in your project
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 # Spanish stopwords list
 SPANISH_STOPWORDS = [
@@ -34,7 +36,7 @@ def apply_kmeans(text_data: pd.Series, n_clusters: int) -> pd.Series:
     X = vectorizer.fit_transform(text_data)
 
     # Apply KMeans clustering
-    kmeans = KMeans(n_clusters=n_clusters)
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
     labels = kmeans.fit_predict(X)
 
     # Get feature names and cluster centers
@@ -54,14 +56,25 @@ def apply_kmeans(text_data: pd.Series, n_clusters: int) -> pd.Series:
 
     return labeled_series
 
-def get_category_distribution(is_fixed: bool, n_clusters: int) -> pd.DataFrame:
+def get_category_distribution(
+        is_fixed: bool, 
+        n_clusters: int,
+        date: date
+    ) -> pd.DataFrame:
     """
-    Load spendings, apply clustering, and return category distribution.
+    Load expenses, apply clustering, and return category distribution.
     """
-    df = data_handler.load_spendings(is_fixed)
+    df = data_handler.load_expenses_by_month(is_fixed, date)
     if df.empty:
         return pd.DataFrame(columns=["Category", "amount"])
-    
+    # group same name expenses
+    df['name'] = df['name'].str.lower().str.strip()
+    df = df.groupby('name', as_index=False).agg({
+        'amount': 'sum',
+        'description': lambda x: ' '.join(x),  # Combine descriptions
+        'date': 'first'          # Keep the first date
+    })
+
     text_data = preprocess_text(df)
     labels = apply_kmeans(text_data, n_clusters)
     df['Category'] = labels
