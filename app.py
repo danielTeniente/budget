@@ -11,13 +11,13 @@ page = st.sidebar.radio("Go to", [
 
 # Page routing
 if page == "Spendings":
-    from pages import spendings
+    from gui_pages import spendings
     spendings.render()
 elif page == "Exchange Currency Spendings":
-    from pages import exchange_currency_spendings
+    from gui_pages import exchange_currency_spendings
     exchange_currency_spendings.render()
 elif page == "Spending Analysis":
-    from pages import spending_analysis
+    from gui_pages import spending_analysis
     spending_analysis.render()
 
     

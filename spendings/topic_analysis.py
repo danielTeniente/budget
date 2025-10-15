@@ -34,7 +34,7 @@ def apply_kmeans(text_data: pd.Series, n_clusters: int) -> pd.Series:
     X = vectorizer.fit_transform(text_data)
 
     # Apply KMeans clustering
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans = KMeans(n_clusters=n_clusters)
     labels = kmeans.fit_predict(X)
 
     # Get feature names and cluster centers
@@ -65,4 +65,4 @@ def get_category_distribution(is_fixed: bool, n_clusters: int) -> pd.DataFrame:
     text_data = preprocess_text(df)
     labels = apply_kmeans(text_data, n_clusters)
     df['Category'] = labels
-    return df.groupby('Category')['amount'].sum().reset_index()
+    return df
