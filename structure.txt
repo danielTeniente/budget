@@ -2,13 +2,16 @@
 expenses_manager/
 │
 ├── app.py                      # Main entry point with menu navigation
-├── pages/
+├── gui_pages/
 │   ├── expenses.py           # expenses management (add, update, delete)
 │   ├── exchange_currency_expenses.py # New page for exchange currency expenses
 │
 ├── expenses/
 │   ├── models.py              # expenses data model
 │   ├── data_handler.py        # Functions to load, add, update, delete expenses
+├── income/
+│   ├── models.py                # ← New model for income
+│   ├── data_handler.py          # ← CRUD logic for income
 │
 ├── data/
 │   └── expenses.csv          # Example data file

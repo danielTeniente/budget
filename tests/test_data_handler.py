@@ -1,5 +1,4 @@
 import unittest
-import app
 from datetime import date, datetime
 from expenses.models import Expenses
 from expenses.data_handler import load_expenses, add_expenses, update_expenses, delete_expenses, load_expenses_by_month

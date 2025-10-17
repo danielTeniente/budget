@@ -18,11 +18,11 @@ selected_date = st.sidebar.date_input(
 st.session_state["selected_date"] = selected_date
 
 page = st.sidebar.radio("Go to", [
-    "expenses", "Earnings", "Analytics", "expenses Analysis", "Exchange Currency expenses"
+    "Expenses", "Income", "Summary", "expenses Analysis", "Exchange Currency expenses"
 ])
 
 # Page routing
-if page == "expenses":
+if page == "Expenses":
     from gui_pages import expenses
     expenses.render()
 elif page == "Exchange Currency expenses":
@@ -31,5 +31,11 @@ elif page == "Exchange Currency expenses":
 elif page == "expenses Analysis":
     from gui_pages import expenses_analysis
     expenses_analysis.render()
+elif page == "Income":
+    from gui_pages import income
+    income.render()
+elif page == "Summary":
+    from gui_pages import summary
+    summary.render()
 
     
