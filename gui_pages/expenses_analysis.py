@@ -4,7 +4,7 @@ import plotly.express as px
 from datetime import date, datetime
 
 # Import backend logic
-from expenses import topic_analysis
+from expenses import topic_analysis, topic_match
 
 
 def render() -> None:
@@ -59,6 +59,19 @@ def render() -> None:
     for _, row in summary_df.iterrows():
         st.markdown(f"**{row['Category']}** — **{row['amount']:.2f}**\n\n{row['name']}")
 
+    # Preselected topics
+    st.subheader("Predefined Topics")
+    matched_df: pd.DataFrame = topic_match.get_category_distribution(
+        is_fixed, selected_date
+    )
+    if matched_df.empty:
+        st.warning("No expenses data available for topic matching.")
+        return
+    topic_distribution: pd.DataFrame = matched_df.groupby('Category')['amount'].sum().reset_index()
+    fig2 = px.pie(topic_distribution, names='Category', values='amount',
+                  title='expenses Distribution by Predefined Topics')
+    st.plotly_chart(fig2)
+    
 # Optional: for direct execution
 if __name__ == "__main__":
     render()

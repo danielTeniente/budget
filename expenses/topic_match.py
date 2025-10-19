@@ -1,9 +1,9 @@
 import pandas as pd
-import expenses.data_handler as data_handler  # Use absolute import in your project
-
+import json
 from datetime import date
-from sklearn.cluster import KMeans
+import expenses.data_handler as data_handler  # Use absolute import in your project
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Spanish stopwords list
 SPANISH_STOPWORDS = [
@@ -21,61 +21,44 @@ SPANISH_STOPWORDS = [
 ]
 
 def preprocess_text(df: pd.DataFrame) -> pd.Series:
-    """
-    Combine 'name' and 'description' fields for text analysis.
-    """
     return df['name'].fillna('') + ' ' + df['description'].fillna('')
 
-def apply_kmeans(text_data: pd.Series, n_clusters: int) -> pd.Series:
-    """
-    Apply KMeans clustering to the text data using Spanish stopwords.
-    Return a Series of labeled categories using the most representative word for each cluster.
-    """
-    # Vectorize the text data
+def load_topics(topic_file: str) -> dict:
+    with open(topic_file, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+def assign_topics(text_data: pd.Series, topic_keywords: dict) -> pd.Series:
+    topic_docs = [' '.join(words) for words in topic_keywords.values()]
+    topic_names = list(topic_keywords.keys())
+
+    combined_texts = topic_docs + list(text_data)
+
     vectorizer = TfidfVectorizer(stop_words=SPANISH_STOPWORDS)
-    X = vectorizer.fit_transform(text_data)
+    tfidf_matrix = vectorizer.fit_transform(combined_texts)
 
-    # Apply KMeans clustering
-    kmeans = KMeans(n_clusters=n_clusters)
-    labels = kmeans.fit_predict(X)
+    topic_vectors = tfidf_matrix[:len(topic_docs)]
+    expense_vectors = tfidf_matrix[len(topic_docs):]
 
-    # Get feature names and cluster centers
-    feature_names = vectorizer.get_feature_names_out()
-    cluster_centers = kmeans.cluster_centers_
+    similarity_matrix = cosine_similarity(expense_vectors, topic_vectors)
+    assigned_topics = [topic_names[i] for i in similarity_matrix.argmax(axis=1)]
 
-    # Extract top term for each cluster
-    top_terms = []
-    for i in range(n_clusters):
-        top_index = cluster_centers[i].argmax()
-        top_term = feature_names[top_index]
-        top_terms.append(top_term)
+    return pd.Series(assigned_topics)
 
-    # Map numeric labels to top terms
-    label_to_term = {i: top_terms[i] for i in range(n_clusters)}
-    labeled_series = pd.Series(labels).map(label_to_term)
-
-    return labeled_series
-
-def get_category_distribution(
-        is_fixed: bool, 
-        n_clusters: int,
-        date: date
-    ) -> pd.DataFrame:
-    """
-    Load expenses, apply clustering, and return category distribution.
-    """
+def get_category_distribution(is_fixed: bool, date: date) -> pd.DataFrame:
+    topic_file = 'data/expense_topics.json'
     df = data_handler.load_expenses_by_month(is_fixed, date)
     if df.empty:
         return pd.DataFrame(columns=["Category", "amount"])
-    # group same name expenses
+
     df['name'] = df['name'].str.lower().str.strip()
     df = df.groupby('name', as_index=False).agg({
         'amount': 'sum',
-        'description': lambda x: ' '.join(x),  # Combine descriptions
-        'date': 'first'          # Keep the first date
+        'description': lambda x: ' '.join(x),
+        'date': 'first'
     })
 
     text_data = preprocess_text(df)
-    labels = apply_kmeans(text_data, n_clusters)
+    topic_keywords = load_topics(topic_file)
+    labels = assign_topics(text_data, topic_keywords)
     df['Category'] = labels
     return df
