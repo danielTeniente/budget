@@ -26,7 +26,7 @@ def preprocess_text(df: pd.DataFrame) -> pd.Series:
     """
     return df['name'].fillna('') + ' ' + df['description'].fillna('')
 
-def apply_kmeans(text_data: pd.Series, n_clusters: int) -> pd.Series:
+def apply_kmeans(text_data: pd.Series) -> pd.Series:
     """
     Apply KMeans clustering to the text data using Spanish stopwords.
     Return a Series of labeled categories using the most representative word for each cluster.
@@ -36,6 +36,13 @@ def apply_kmeans(text_data: pd.Series, n_clusters: int) -> pd.Series:
     X = vectorizer.fit_transform(text_data)
 
     # Apply KMeans clustering
+    if X.shape[0] > 20:
+        n_clusters = X.shape[0]//10
+    elif X.shape[0] > 2:
+        n_clusters = X.shape[0]//2
+    else:
+        n_clusters = 1
+    
     kmeans = KMeans(n_clusters=n_clusters)
     labels = kmeans.fit_predict(X)
 
@@ -58,7 +65,6 @@ def apply_kmeans(text_data: pd.Series, n_clusters: int) -> pd.Series:
 
 def get_category_distribution(
         is_fixed: bool, 
-        n_clusters: int,
         date: date
     ) -> pd.DataFrame:
     """
@@ -76,6 +82,6 @@ def get_category_distribution(
     })
 
     text_data = preprocess_text(df)
-    labels = apply_kmeans(text_data, n_clusters)
+    labels = apply_kmeans(text_data)
     df['Category'] = labels
     return df

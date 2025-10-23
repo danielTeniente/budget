@@ -5,6 +5,9 @@ expenses_manager/
 ├── gui_pages/
 │   ├── expenses.py           # expenses management (add, update, delete)
 │   ├── exchange_currency_expenses.py # New page for exchange currency expenses
+│   ├── expenses_analysis.py  # expenses analysis and visualization
+├── widgets/
+│   ├── expense_widgets.py  ← 📦 New module for reusable widgets
 │
 ├── expenses/
 │   ├── models.py              # expenses data model
