@@ -12,7 +12,7 @@ SUPPORTED_CURRENCIES: List[Currency] = ["USD", "EUR", "GBP"]
 
 # Default fallback exchange rates
 DEFAULT_EXCHANGE_RATES = {
-    ("EUR", "USD"): 1.1,
+    ("EUR", "USD"): 1.17,
     ("USD", "EUR"): 0.91,
     ("GBP", "USD"): 1.25,
     ("USD", "GBP"): 0.8,
@@ -22,13 +22,7 @@ DEFAULT_EXCHANGE_RATES = {
 
 def fetch_exchange_rate(from_currency: Currency, to_currency: Currency) -> float:
     """Fetch exchange rate from exchangerate.host or fallback to default."""
-    try:
-        url = f"https://api.exchangerate.host/latest?base={from_currency}&symbols={to_currency}"
-        response = requests.get(url)
-        data = response.json()
-        return data["rates"][to_currency]
-    except Exception:
-        return DEFAULT_EXCHANGE_RATES.get((from_currency, to_currency), 1.0)
+    return DEFAULT_EXCHANGE_RATES.get((from_currency, to_currency), 1.0)
 
 def convert_currency(amount: float, rate: float) -> float:
     """Convert amount using exchange rate."""
@@ -49,7 +43,7 @@ def render() -> None:
 
     # Input multiple expenses
     st.subheader("Enter expenses")
-    num_expenses: int = st.number_input("Number of expenses", min_value=1, max_value=10, step=1)
+    num_expenses: int = st.number_input("Number of expenses", min_value=1, max_value=20, step=1)
 
     expenses: List[Expenses] = []
     total_original: float = 0.0
