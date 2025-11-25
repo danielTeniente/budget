@@ -3,6 +3,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 from datetime import datetime
+from gui_pages.frequent_expenses import render as render_frequent_expenses
 from utils.summary_logic import (
     load_total_income,
     load_total_expenses,
@@ -149,4 +150,6 @@ def render() -> None:
         st.info(f"No data available for the year {current_year}.")
 
     st.divider()
+
+    render_frequent_expenses()
 
