@@ -22,6 +22,7 @@ page = st.sidebar.radio("Go to", [
     "Income",
     "Exchange Currency expenses",
     "Summary",
+    "Gastos frecuentes",
     "Projection",
     "Expenses Analysis",
 ])
@@ -45,5 +46,8 @@ elif page == "Summary":
 elif page == "Projection":
     from gui_pages import projection_page
     projection_page.render()
+elif page == "Gastos frecuentes":
+    from gui_pages import frequent_expenses
+    frequent_expenses.render()
 
     
