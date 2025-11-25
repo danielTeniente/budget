@@ -22,7 +22,6 @@ page = st.sidebar.radio("Go to", [
     "Income",
     "Exchange Currency expenses",
     "Summary",
-    "Gastos frecuentes",
     "Projection",
     "Expenses Analysis",
 ])
