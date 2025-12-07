@@ -1,0 +1,127 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 90vh;
+                 background-color: #1e1e1e;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "white"}, "id": "gui_pages.frequent_expenses", "label": "gui_pages.frequent_expenses", "shape": "dot", "size": 14.5, "title": "gui_pages.frequent_expenses\nConexiones: 3"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "gui_pages.expenses", "label": "gui_pages.expenses", "shape": "dot", "size": 14.5, "title": "gui_pages.expenses\nConexiones: 3"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "income.models", "label": "income.models", "shape": "dot", "size": 13.0, "title": "income.models\nConexiones: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "gui_pages.summary", "label": "gui_pages.summary", "shape": "dot", "size": 14.5, "title": "gui_pages.summary\nConexiones: 3"}, {"color": "#7BE141", "font": {"color": "white"}, "id": "utils.analysis_logic", "label": "utils.analysis_logic", "shape": "dot", "size": 11.5, "title": "utils.analysis_logic\nConexiones: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "gui_pages.income", "label": "gui_pages.income", "shape": "dot", "size": 14.5, "title": "gui_pages.income\nConexiones: 3"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "expenses.topic_analysis", "label": "expenses.topic_analysis", "shape": "dot", "size": 13.0, "title": "expenses.topic_analysis\nConexiones: 2"}, {"color": "#7BE141", "font": {"color": "white"}, "id": "utils.projection_logic", "label": "utils.projection_logic", "shape": "dot", "size": 14.5, "title": "utils.projection_logic\nConexiones: 3"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "expenses.models", "label": "expenses.models", "shape": "dot", "size": 14.5, "title": "expenses.models\nConexiones: 3"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "expenses.data_handler", "label": "expenses.data_handler", "shape": "dot", "size": 19.0, "title": "expenses.data_handler\nConexiones: 6"}, {"color": "#FB7E81", "font": {"color": "white"}, "id": "app", "label": "app", "shape": "dot", "size": 19.0, "title": "app\nConexiones: 6"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "gui_pages.expenses_analysis", "label": "gui_pages.expenses_analysis", "shape": "dot", "size": 14.5, "title": "gui_pages.expenses_analysis\nConexiones: 3"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "income.data_handler", "label": "income.data_handler", "shape": "dot", "size": 16.0, "title": "income.data_handler\nConexiones: 4"}, {"color": "#7BE141", "font": {"color": "white"}, "id": "utils.summary_logic", "label": "utils.summary_logic", "shape": "dot", "size": 16.0, "title": "utils.summary_logic\nConexiones: 4"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "gui_pages.projection_page", "label": "gui_pages.projection_page", "shape": "dot", "size": 13.0, "title": "gui_pages.projection_page\nConexiones: 2"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "gui_pages.exchange_currency_expenses", "label": "gui_pages.exchange_currency_expenses", "shape": "dot", "size": 14.5, "title": "gui_pages.exchange_currency_expenses\nConexiones: 3"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "widgets.expense_widgets", "label": "widgets.expense_widgets", "shape": "dot", "size": 11.5, "title": "widgets.expense_widgets\nConexiones: 1"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "expenses", "label": "expenses", "shape": "dot", "size": 10.0, "title": "expenses\nConexiones: 0"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "gui_pages.expenses_analysis", "to": "widgets.expense_widgets"}, {"arrows": "to", "from": "app", "to": "gui_pages.projection_page"}, {"arrows": "to", "from": "app", "to": "gui_pages.expenses_analysis"}, {"arrows": "to", "from": "expenses.topic_analysis", "to": "expenses.data_handler"}, {"arrows": "to", "from": "gui_pages.expenses", "to": "expenses.models"}, {"arrows": "to", "from": "gui_pages.exchange_currency_expenses", "to": "expenses.data_handler"}, {"arrows": "to", "from": "utils.summary_logic", "to": "income.data_handler"}, {"arrows": "to", "from": "utils.summary_logic", "to": "expenses.data_handler"}, {"arrows": "to", "from": "app", "to": "gui_pages.income"}, {"arrows": "to", "from": "gui_pages.income", "to": "income.data_handler"}, {"arrows": "to", "from": "income.data_handler", "to": "income.models"}, {"arrows": "to", "from": "gui_pages.projection_page", "to": "utils.projection_logic"}, {"arrows": "to", "from": "gui_pages.expenses", "to": "expenses.data_handler"}, {"arrows": "to", "from": "gui_pages.summary", "to": "gui_pages.frequent_expenses"}, {"arrows": "to", "from": "gui_pages.frequent_expenses", "to": "utils.summary_logic"}, {"arrows": "to", "from": "app", "to": "gui_pages.summary"}, {"arrows": "to", "from": "gui_pages.summary", "to": "utils.summary_logic"}, {"arrows": "to", "from": "gui_pages.frequent_expenses", "to": "utils.analysis_logic"}, {"arrows": "to", "from": "utils.projection_logic", "to": "expenses.data_handler"}, {"arrows": "to", "from": "gui_pages.income", "to": "income.models"}, {"arrows": "to", "from": "utils.projection_logic", "to": "income.data_handler"}, {"arrows": "to", "from": "gui_pages.exchange_currency_expenses", "to": "expenses.models"}, {"arrows": "to", "from": "app", "to": "gui_pages.exchange_currency_expenses"}, {"arrows": "to", "from": "app", "to": "gui_pages.expenses"}, {"arrows": "to", "from": "gui_pages.expenses_analysis", "to": "expenses.topic_analysis"}, {"arrows": "to", "from": "expenses.data_handler", "to": "expenses.models"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"forceAtlas2Based": {"gravitationalConstant": -50, "centralGravity": 0.01, "springLength": 100, "springConstant": 0.08, "damping": 0.4}, "maxVelocity": 50, "solver": "forceAtlas2Based", "timestep": 0.35, "stabilization": {"iterations": 150}}, "nodes": {"shape": "dot", "font": {"size": 14, "color": "#ffffff"}}, "edges": {"color": {"color": "#555555", "highlight": "#ffcc00"}, "width": 1, "smooth": {"type": "continuous"}}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

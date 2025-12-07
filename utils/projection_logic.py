@@ -70,7 +70,7 @@ def get_projections(
     var_inc_method: str,
     var_exp_method: str,
     data_context: dict
-):
+) -> tuple[pd.DataFrame, dict]:
     """
     Returns:
         tuple: (DataFrame con proyecciones, dict con resumen de montos base)
@@ -80,29 +80,30 @@ def get_projections(
     hist_var_inc = data_context["hist_var_inc"]
     hist_var_exp = data_context["hist_var_exp"]
 
-    # --- 1. Calcular valores base para proyección ---
+    # --- 1. Calcular valores OBJETIVO (Target) para proyección ---
     projected_fixed_inc_amount = unique_fixed_inc[unique_fixed_inc["name"].isin(selected_fixed_inc_names)]["amount"].sum()
     projected_fixed_exp_amount = unique_fixed_exp[unique_fixed_exp["name"].isin(selected_fixed_exp_names)]["amount"].sum()
 
     projected_var_inc_amount = calculate_variable_amount(hist_var_inc, var_inc_method)
     projected_var_exp_amount = calculate_variable_amount(hist_var_exp, var_exp_method)
 
-    total_projected_income = projected_fixed_inc_amount + projected_var_inc_amount
-    total_projected_expenses = projected_fixed_exp_amount + projected_var_exp_amount
+    # Estos son los totales ideales/objetivo
+    target_income = projected_fixed_inc_amount + projected_var_inc_amount
+    target_expenses = projected_fixed_exp_amount + projected_var_exp_amount
 
-    # Guardar resumen para explicar al usuario de dónde salen los números
+    # Guardar resumen
     summary = {
         "fixed_income": projected_fixed_inc_amount,
         "variable_income": projected_var_inc_amount,
         "fixed_expenses": projected_fixed_exp_amount,
         "variable_expenses": projected_var_exp_amount,
-        "total_income": total_projected_income,
-        "total_expenses": total_projected_expenses,
+        "total_income": target_income,
+        "total_expenses": target_expenses,
         "var_inc_method": var_inc_method,
         "var_exp_method": var_exp_method
     }
 
-    # --- 2. Construir Historial ---
+    # --- 2. Construir Historial (Realidad) ---
     all_inc = pd.concat([data_context["hist_fixed_inc"], data_context["hist_var_inc"]])
     all_exp = pd.concat([data_context["hist_fixed_exp"], data_context["hist_var_exp"]])
     
@@ -111,43 +112,78 @@ def get_projections(
     
     historical_rows = []
     
-    # Calcular balance actual real para iniciar la proyección
+    # Mapa para buscar rápidamente cuánto llevamos gastado en el mes actual
+    actuals_map = {} 
+
+    for period in dates_hist:
+        inc_month = all_inc[all_inc["date"].dt.to_period("M") == period]["amount"].sum()
+        exp_month = all_exp[all_exp["date"].dt.to_period("M") == period]["amount"].sum()
+        
+        month_str = str(period)
+        
+        # Guardamos en el mapa para usarlo en la proyección
+        actuals_map[month_str] = {
+            "income": inc_month,
+            "expenses": exp_month
+        }
+
+        historical_rows.append({
+            "month": month_str,
+            "total_income": inc_month,
+            "total_expenses": exp_month,
+            "balance": None, # El balance histórico se suele calcular distinto o dejar null para gráfico
+            "type": "Histórico"
+        })
+        
+    # --- 3. Construir Proyección (Futuro + Restante del Actual) ---
+    
+    # Calcular balance actual real (Saldos en cuentas hoy)
     current_balance = (
         data_context["raw_fixed_inc"]["amount"].sum() + data_context["raw_var_inc"]["amount"].sum()
     ) - (
         data_context["raw_fixed_exp"]["amount"].sum() + data_context["raw_var_exp"]["amount"].sum()
     )
 
-    for period in dates_hist:
-        inc_month = all_inc[all_inc["date"].dt.to_period("M") == period]["amount"].sum()
-        exp_month = all_exp[all_exp["date"].dt.to_period("M") == period]["amount"].sum()
-        
-        historical_rows.append({
-            "month": str(period),
-            "total_income": inc_month,
-            "total_expenses": exp_month,
-            "balance": None, 
-            "type": "Histórico"
-        })
-        
-    # --- 3. Construir Proyección ---
     current_month_date = datetime.today().replace(day=1)
+    current_month_str = current_month_date.strftime("%Y-%m")
     
     projection_rows = []
     running_balance = current_balance
 
     for i in range(num_months):
         month_date = current_month_date + pd.DateOffset(months=i)
-        running_balance += (total_projected_income - total_projected_expenses)
+        loop_month_str = month_date.strftime("%Y-%m")
+        
+        # Valores por defecto: Asumimos que es un mes futuro completo
+        proj_inc_for_row = target_income
+        proj_exp_for_row = target_expenses
+
+        # LÓGICA DE DESCUENTO: Si es el mes actual, restamos lo real
+        if loop_month_str == current_month_str:
+            # Recuperar lo que ya llevamos (si existe en histórico)
+            actual_data = actuals_map.get(loop_month_str, {"income": 0, "expenses": 0})
+            
+            # Cálculo: Objetivo - Real. Si es negativo (gastamos de más), ponemos 0.
+            remaining_inc = max(0, target_income - actual_data["income"])
+            remaining_exp = max(0, target_expenses - actual_data["expenses"])
+            
+            proj_inc_for_row = remaining_inc
+            proj_exp_for_row = remaining_exp
+
+        # Actualizar balance acumulado
+        # Nota: running_balance parte del 'current_balance' (que ya incluye lo real).
+        # Por tanto, solo sumamos/restamos lo *restante* proyectado.
+        running_balance += (proj_inc_for_row - proj_exp_for_row)
 
         projection_rows.append({
-            "month": month_date.strftime("%Y-%m"),
-            "total_income": total_projected_income,
-            "total_expenses": total_projected_expenses,
+            "month": loop_month_str,
+            "total_income": proj_inc_for_row,
+            "total_expenses": proj_exp_for_row,
             "balance": running_balance,
             "type": "Proyectado"
         })
 
+    # Unimos ambos DataFrames
     final_df = pd.concat([pd.DataFrame(historical_rows), pd.DataFrame(projection_rows)], ignore_index=True)
     
     return final_df, summary
