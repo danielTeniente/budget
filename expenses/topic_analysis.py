@@ -3,7 +3,7 @@ import json
 from datetime import date
 import expenses.data_handler as data_handler
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.cluster import KMeans  # CAMBIO: Importamos KMeans en lugar de DBSCAN
+from sklearn.cluster import KMeans
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -61,15 +61,21 @@ def get_category_distribution(is_fixed: bool, selected_date: date) -> pd.DataFra
     """
     topic_file = 'data/expense_topics.json'
     df = data_handler.load_expenses_by_month(is_fixed, selected_date)
+    
+    # CAMBIO: Agregamos 'frequency' a las columnas por defecto
     if df.empty:
-        return pd.DataFrame(columns=["name", "amount", "description", "date", "Category"])
+        return pd.DataFrame(columns=["name", "amount", "frequency", "description", "date", "Category"])
 
     df['name'] = df['name'].str.lower().str.strip()
-    df = df.groupby('name', as_index=False).agg({
-        'amount': 'sum',
-        'description': lambda x: ' '.join(x),
-        'date': 'first'
-    })
+    
+    # CAMBIO IMPORTANTE: 
+    # Usamos named aggregation para calcular la suma (amount) Y la cuenta (frequency) al mismo tiempo
+    df = df.groupby('name', as_index=False).agg(
+        amount=('amount', 'sum'),              # Suma total del dinero gastado en este item
+        frequency=('amount', 'count'),         # Cuenta cuántas veces aparece este item
+        description=('description', lambda x: ' '.join(x)),
+        date=('date', 'first')
+    )
 
     text_data = preprocess_text(df)
     topic_keywords = load_topics(topic_file)
@@ -93,7 +99,7 @@ def get_available_categories(df: pd.DataFrame) -> list[str]:
     category_totals = df.groupby('Category')['amount'].sum().sort_values(ascending=False)
     return category_totals.index.tolist()
 
-# CAMBIO: Función renombrada y adaptada para KMeans
+
 def apply_kmeans(text_data: pd.Series, n_clusters: int = 3) -> pd.Series:
     """
     Apply K-Means clustering to text data using TF-IDF vectors.
@@ -102,45 +108,32 @@ def apply_kmeans(text_data: pd.Series, n_clusters: int = 3) -> pd.Series:
     if len(text_data) == 0:
         return pd.Series(dtype=str)
     
-    # Si hay menos datos que clusters solicitados, ajustamos n_clusters
     true_k = min(n_clusters, len(text_data))
     
     if true_k <= 1:
-        # Si solo hay un cluster posible, usamos el primer término disponible o 'Único'
         term = text_data.iloc[0].split()[0] if text_data.iloc[0] else 'General'
         return pd.Series([term.capitalize()] * len(text_data))
 
-    # Vectorize the text data
     vectorizer = TfidfVectorizer(stop_words=SPANISH_STOPWORDS)
     X = vectorizer.fit_transform(text_data)
     
-    # Apply K-Means clustering
     kmeans = KMeans(n_clusters=true_k, n_init=10)
     labels = kmeans.fit_predict(X)
     
-    # Get feature names for labeling
     feature_names = vectorizer.get_feature_names_out()
-    
-    # Determine the top term for each cluster based on centroids
     label_to_term = {}
-    
-    # Los centroides están en kmeans.cluster_centers_
-    # Ordenamos los índices de mayor a menor peso para cada centroide
     ordered_centroids = kmeans.cluster_centers_.argsort()[:, ::-1]
     
     for i in range(true_k):
-        # Tomamos el término con mayor peso en el centroide
         top_feature_index = ordered_centroids[i, 0]
         top_term = feature_names[top_feature_index]
         label_to_term[i] = top_term.capitalize()
     
-    # Map numeric labels to terms
     labeled_series = pd.Series(labels).map(label_to_term)
     
     return labeled_series
 
 
-# CAMBIO: Parámetros actualizados para recibir n_clusters
 def get_subcategory_distribution(
     df: pd.DataFrame,
     category: str,
@@ -150,21 +143,18 @@ def get_subcategory_distribution(
     Filter expenses by category and apply K-Means subcategorization.
     Returns DataFrame with Subcategory column.
     """
+    # CAMBIO: Agregamos 'frequency' a las columnas por defecto
     if df.empty:
-        return pd.DataFrame(columns=["name", "amount", "description", "date", "Category", "Subcategory"])
+        return pd.DataFrame(columns=["name", "amount", "frequency", "description", "date", "Category", "Subcategory"])
     
-    # Filter by selected category
     category_df = df[df['Category'] == category].copy()
     
     if category_df.empty:
-        return pd.DataFrame(columns=["name", "amount", "description", "date", "Category", "Subcategory"])
+        return pd.DataFrame(columns=["name", "amount", "frequency", "description", "date", "Category", "Subcategory"])
     
-    # Apply KMeans clustering for subcategorization
     text_data = preprocess_text(category_df)
     
-    # CAMBIO: Llamada a la nueva función apply_kmeans
     subcategory_labels = apply_kmeans(text_data, n_clusters=n_clusters)
-    
     category_df['Subcategory'] = subcategory_labels.values
     
     return category_df

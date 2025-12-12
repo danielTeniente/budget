@@ -54,14 +54,12 @@ def render() -> None:
         st.warning("No expenses data available for the selected period.")
         return
 
-    # Render main pie chart with all categories
     render_category_pie_chart(
         df=main_df,
         title="Expenses Distribution by Category",
         category_column="Category"
     )
     
-    # Show summary of all expenses
     with st.expander("View All Expenses Details", expanded=False):
         render_expense_summary(main_df)
 
@@ -71,11 +69,9 @@ def render() -> None:
     st.divider()
     st.subheader("🔍 Subcategory Analysis")
     
-    # Get available categories sorted by total amount
     available_categories = topic_analysis.get_available_categories(main_df)
     default_category = topic_analysis.get_top_category(main_df)
     
-    # Category selector
     col1, col2 = st.columns([2, 1])
     
     with col1:
@@ -87,7 +83,6 @@ def render() -> None:
         )
     
     with col2:
-        # K-Means parameters (Number of clusters selector)
         with st.expander("⚙️ K-Means Settings"):
             n_clusters = st.number_input(
                 "Number of Clusters",
@@ -98,7 +93,6 @@ def render() -> None:
                 help="Define how many subcategories you want to generate."
             )
     
-    # Get subcategorization for selected category
     subcategory_df = topic_analysis.get_subcategory_distribution(
         df=main_df,
         category=selected_category,
@@ -109,14 +103,12 @@ def render() -> None:
         st.info(f"No expenses found in category '{selected_category}'.")
         return
     
-    # Show category total
     category_total = subcategory_df['amount'].sum()
     st.metric(
         label=f"Total in '{selected_category}'",
         value=f"${category_total:,.2f}"
     )
     
-    # Render subcategory pie chart
     render_category_pie_chart(
         df=subcategory_df,
         title=f"Subcategories within '{selected_category}'",
@@ -124,33 +116,29 @@ def render() -> None:
     )
     
     # CAMBIO PRINCIPAL AQUÍ:
-    # Mostramos los detalles agrupados por subcategoría en lugar de una tabla plana
     with st.expander(f"View '{selected_category}' Expenses Details", expanded=True):
         
-        # Agrupamos por la subcategoría (etiqueta generada por KMeans)
-        # Ordenamos los grupos por monto total descendente para mostrar lo más relevante primero
         grouped = subcategory_df.groupby('Subcategory')
         sorted_groups = sorted(grouped, key=lambda x: x[1]['amount'].sum(), reverse=True)
 
         for subcat_name, group_data in sorted_groups:
-            # Calculamos el total de este grupo
             group_total = group_data['amount'].sum()
             
-            # Mostramos Título: Nombre Subcategoría (Total)
             st.markdown(f"#### 🔹 {subcat_name} <span style='color:gray; font-size:0.8em'>(${group_total:,.2f})</span>", unsafe_allow_html=True)
             
-            # Preparamos la tabla para este grupo
-            # Seleccionamos 'name' y 'amount' para dar contexto, pero mantenemos foco en el nombre
-            items_display = group_data[['name', 'amount']].sort_values(by='amount', ascending=False)
-            items_display.columns = ['Item Name', 'Amount']
-            
-            # Renderizamos la tabla limpia sin índice
+            # CAMBIO: Incluimos 'frequency' en la visualización
+            if 'frequency' in group_data.columns:
+                items_display = group_data[['name', 'amount', 'frequency']].sort_values(by='amount', ascending=False)
+                items_display.columns = ['Item Name', 'Total Amount', 'Count'] # Renombramos para claridad
+            else:
+                items_display = group_data[['name', 'amount']].sort_values(by='amount', ascending=False)
+                items_display.columns = ['Item Name', 'Total Amount']
+
             st.dataframe(
                 items_display,
                 use_container_width=True,
                 hide_index=True
             )
-            # Añadimos un pequeño separador visual
             st.write("") 
 
 if __name__ == "__main__":
