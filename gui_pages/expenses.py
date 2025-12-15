@@ -74,6 +74,17 @@ def render() -> None:
     if "expense_desc" not in st.session_state:
         st.session_state["expense_desc"] = ""
         
+    # --- CORRECCIÓN PARTE 1: Lógica de limpieza al inicio ---
+    # Si la bandera 'reset_form' está activa, limpiamos los valores AHORA,
+    # antes de que se rendericen los widgets más abajo.
+    if st.session_state.get("reset_form"):
+        st.session_state["expense_name"] = ""
+        st.session_state["expense_amount"] = 0.0
+        st.session_state["expense_desc"] = ""
+        st.session_state["last_applied_suggestion_id"] = None
+        st.session_state["reset_form"] = False # Apagamos la bandera
+        st.success("Expense added successfully!") # Mostramos el éxito aquí para que se vea tras el rerun
+
     # Variable para controlar la lógica de "pre-llenado"
     # Usamos esto para detectar cambios en el selectbox
     if "last_applied_suggestion_id" not in st.session_state:
@@ -215,14 +226,13 @@ def render() -> None:
             if name and amount > 0:
                 new_expenses = Expenses(expenses_date, name, amount, description, is_fixed)
                 add_expenses(new_expenses)
-                st.success("Expense added successfully!")
                 
-                # Limpiar todo
-                st.session_state["expense_name"] = ""
-                st.session_state["expense_amount"] = 0.0
-                st.session_state["expense_desc"] = ""
-                st.session_state["last_applied_suggestion_id"] = None
+                # --- CORRECCIÓN PARTE 2: Activar bandera y recargar ---
+                # No limpiamos las variables aquí. Solo activamos la bandera.
+                st.session_state["reset_form"] = True
                 
+                # Al hacer rerun, el script vuelve arriba, entra en el IF de la Parte 1,
+                # limpia los datos, muestra el mensaje de éxito y luego dibuja el formulario vacío.
                 st.rerun()
             else:
                 st.error("Please enter a name and an amount greater than 0.")
@@ -232,44 +242,43 @@ def render() -> None:
     # ---------------------------------------------------------
     if not display_df.empty:
         st.divider()
-        with st.expander("Manage Existing Expenses"):
-            options = display_df['original_index'].tolist()
+        st.subheader("Actualizar gastos existentes")
+        options = display_df['original_index'].tolist()
+        
+        def format_option(idx):
+            row = df.loc[idx]
+            return f"{row['date']} - {row['name']} (${row['amount']})"
+
+        selected_index = st.selectbox("Select Expense", options=options, format_func=format_option)
+        current_data = df.loc[selected_index]
+
+        with st.form("update_form"):
+            u_date = st.date_input("Date", value=current_data['date'])
+            u_name = st.text_input("Name", value=current_data['name'])
+            u_amount = st.number_input("Amount", min_value=0.0, value=float(current_data['amount']))
+            u_desc = st.text_input("Description", value=current_data['description'])
             
-            def format_option(idx):
-                row = df.loc[idx]
-                return f"{row['date']} - {row['name']} (${row['amount']})"
-
-            selected_index = st.selectbox("Select Expense", options=options, format_func=format_option)
-            current_data = df.loc[selected_index]
-
-            st.write("---")
-            with st.form("update_form"):
-                u_date = st.date_input("Date", value=current_data['date'])
-                u_name = st.text_input("Name", value=current_data['name'])
-                u_amount = st.number_input("Amount", min_value=0.0, value=float(current_data['amount']))
-                u_desc = st.text_input("Description", value=current_data['description'])
-                
-                target_label = "Variable" if is_fixed else "Fixed"
-                move_type = st.checkbox(f"Move to {target_label}?")
-                
-                col_up, col_del = st.columns([1, 4])
-                with col_up:
-                    update_submitted = st.form_submit_button("Update")
-                
-                if update_submitted:
-                    if move_type:
-                        delete_expenses(selected_index, is_fixed)
-                        switched = Expenses(u_date, u_name, u_amount, u_desc, not is_fixed)
-                        add_expenses(switched)
-                        st.success(f"Moved to {target_label}!")
-                    else:
-                        updated = Expenses(u_date, u_name, u_amount, u_desc, is_fixed)
-                        update_expenses(selected_index, updated)
-                        st.success("Updated!")
-                    st.rerun()
-
-            st.write("Or delete:")
-            if st.button("Delete Selected Expense", type="primary"):
-                delete_expenses(selected_index, is_fixed)
-                st.success("Deleted!")
+            target_label = "Variable" if is_fixed else "Fixed"
+            move_type = st.checkbox(f"Move to {target_label}?")
+            
+            col_up, col_del = st.columns([1, 4])
+            with col_up:
+                update_submitted = st.form_submit_button("Update")
+            
+            if update_submitted:
+                if move_type:
+                    delete_expenses(selected_index, is_fixed)
+                    switched = Expenses(u_date, u_name, u_amount, u_desc, not is_fixed)
+                    add_expenses(switched)
+                    st.success(f"Moved to {target_label}!")
+                else:
+                    updated = Expenses(u_date, u_name, u_amount, u_desc, is_fixed)
+                    update_expenses(selected_index, updated)
+                    st.success("Updated!")
                 st.rerun()
+
+        st.write("Or delete:")
+        if st.button("Delete Selected Expense", type="primary"):
+            delete_expenses(selected_index, is_fixed)
+            st.success("Deleted!")
+            st.rerun()
