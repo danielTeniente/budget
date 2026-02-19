@@ -24,6 +24,7 @@ page = st.sidebar.radio("Go to", [
     "Summary",
     "Projection",
     "Expenses Analysis",
+    "Debt Manager"
 ])
 
 # Page routing
@@ -45,5 +46,8 @@ elif page == "Summary":
 elif page == "Projection":
     from gui_pages import projection_page
     projection_page.render()
+elif page == "Debt Manager":
+    from gui_pages import debt_page
+    debt_page.render()
 
     
